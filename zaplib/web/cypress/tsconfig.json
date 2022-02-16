@@ -1,0 +1,18 @@
+{
+    "noImplicitAny": true,
+    "compilerOptions": {
+        "module": "es2020",
+        "target": "es6",
+        "lib": [
+            "es6",
+            "dom"
+        ],
+        "types": [
+            "cypress"
+        ],
+        "strict": true
+    },
+    "include": [
+        "**/*.ts"
+    ]
+}
