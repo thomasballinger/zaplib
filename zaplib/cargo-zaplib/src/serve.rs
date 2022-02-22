@@ -1,5 +1,7 @@
+use std::error::Error;
+
 use actix_files::Files;
-use actix_web::{middleware, rt, App as ActixApp, HttpServer};
+use actix_web::{middleware, rt, App as ActixApp, HttpServer, Responder, HttpRequest, HttpResponse, web};
 use log::info;
 use openssl::{
     pkey::PKey,
@@ -7,10 +9,27 @@ use openssl::{
     x509::X509,
 };
 use rcgen::generate_simple_self_signed;
+use reqwest;
 
 pub(crate) fn serve(path: String, port: u16, ssl: bool) {
     let server_future = server_thread(path, port, ssl);
     rt::System::new().block_on(server_future)
+}
+
+async fn unpkg_req(path: String) -> Result<String, Box<dyn Error>> {
+    Ok(reqwest::get(format!("https:/{}", path)).await?.text().await?)
+}
+
+async fn unpkg_proxy(req: HttpRequest) -> impl Responder {
+    if req.path().starts_with("/unpkg.com") {
+        match unpkg_req(req.path().to_string()).await {
+            Ok(r) => HttpResponse::Ok().content_type("application/javascript").body(r),
+            _ => HttpResponse::NotFound().body("Not found")
+        }
+    } else {
+        // return not found
+        HttpResponse::NotFound().body("Not found")
+    }
 }
 
 async fn server_thread(path: String, port: u16, ssl: bool) {
@@ -25,7 +44,7 @@ async fn server_thread(path: String, port: u16, ssl: bool) {
                     .add(("Cross-Origin-Opener-Policy", "same-origin"))
                     .add(("Cross-Origin-Embedder-Policy", "require-corp"))
                     .add(("Access-Control-Allow-Origin", "*")),
-            )
+            )  
             .service(
                 Files::new("/", &path)
                     .show_files_listing()
@@ -35,6 +54,11 @@ async fn server_thread(path: String, port: u16, ssl: bool) {
                     .redirect_to_slash_directory()
                     .use_hidden_files(),
             )
+            .default_service(
+                web::route()
+                  .to(unpkg_proxy),
+            )
+            
     });
 
     if ssl {

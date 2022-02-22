@@ -15,7 +15,15 @@ pushd zaplib/web
     yarn install
     yarn run build
     npm version 0.0.0-$(git rev-parse --short HEAD)
-    npm publish --tag canary
+
+    BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    if [[ "$BRANCH" = "main" ]]; 
+    then
+        npm publish # sets `latest` tag
+    fi
+    else
+        npm publish --tag canary # doesn't update `latest` tag
+    fi
 
     # Dev build (overriding prod build above), so we get better stack traces.
     yarn run build-dev

@@ -2,11 +2,19 @@
     <meta charset="utf-8" />
 </head>
 <body>
-    <script type="text/javascript" src="/zaplib/web/dist/zaplib_runtime.js"></script>
     <script>
-        zaplib.initialize({
-            filename: 'target/wasm32-unknown-unknown/debug/tutorial_hello_world_console.wasm',
-            defaultStyles: true,
-        });
+        var script = document.createElement( "script" )
+        script.type = "text/javascript";
+
+        let local = new URLSearchParams(document.location.search).has('local');
+        script.src = local ? "/zaplib/web/dist/zaplib_runtime.js" : "/unpkg.com/zaplib/dist/zaplib_runtime.js";
+        
+        script.onload = () => {
+            zaplib.initialize({
+                wasmModule: 'target/wasm32-unknown-unknown/debug/tutorial_hello_world_console.wasm',
+                defaultStyles: true,
+            });
+        }
+        document.body.appendChild( script );
     </script>
 </body>
